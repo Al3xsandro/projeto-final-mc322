@@ -54,7 +54,7 @@ public class HorarioDisponivel {
         this.horaFim = horaFim;
     }
 
-    public boolean isDisponivel() {
+    public boolean estaDisponivel() {
         return disponivel;
     }
 
