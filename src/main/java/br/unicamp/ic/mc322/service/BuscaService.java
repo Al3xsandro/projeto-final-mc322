@@ -1,15 +1,15 @@
 package br.unicamp.ic.mc322.service;
 
+import java.time.DayOfWeek;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+
 import br.unicamp.ic.mc322.model.Especialidade;
 import br.unicamp.ic.mc322.model.Exame;
 import br.unicamp.ic.mc322.model.HorarioDisponivel;
 import br.unicamp.ic.mc322.model.Medico;
 import br.unicamp.ic.mc322.persistence.MedicoRepository;
-
-import java.time.DayOfWeek;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
 
 public class BuscaService {
 
@@ -93,7 +93,7 @@ public class BuscaService {
             return false;
         }
         for (HorarioDisponivel horario : medico.getAgenda().getHorariosDisponiveis()) {
-            if (horario.getDiaDaSemana() == dia && horario.isDisponivel()) {
+            if (horario.getDiaDaSemana() == dia && horario.estaDisponivel()) {
                 return true;
             }
         }

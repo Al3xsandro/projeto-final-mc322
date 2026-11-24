@@ -1,5 +1,11 @@
 package br.unicamp.ic.mc322.telas;
 
+import java.time.DayOfWeek;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.util.List;
+
 import br.unicamp.ic.mc322.model.Agendamento;
 import br.unicamp.ic.mc322.model.HorarioDisponivel;
 import br.unicamp.ic.mc322.model.Medico;
@@ -16,12 +22,6 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
-
-import java.time.DayOfWeek;
-import java.time.LocalTime;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
-import java.util.List;
 
 public class PainelMedico {
 
@@ -179,7 +179,7 @@ public class PainelMedico {
         String dia = horario.getDiaDaSemana() == null ? "" : horario.getDiaDaSemana().toString();
         String inicio = horario.getHoraInicio() == null ? "" : horario.getHoraInicio().toString();
         String fim = horario.getHoraFim() == null ? "" : horario.getHoraFim().toString();
-        return dia + "  " + inicio + " - " + fim + (horario.isDisponivel() ? "" : " (indisponível)");
+        return dia + "  " + inicio + " - " + fim + (horario.estaDisponivel() ? "" : " (indisponível)");
     }
 
     private static String descrever(Agendamento agendamento) {

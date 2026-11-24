@@ -1,17 +1,18 @@
 package br.unicamp.ic.mc322.persistence;
 
+import java.nio.file.Path;
+import java.time.DayOfWeek;
+import java.util.ArrayList;
+import java.util.List;
+
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+
 import br.unicamp.ic.mc322.model.Agenda;
 import br.unicamp.ic.mc322.model.Especialidade;
 import br.unicamp.ic.mc322.model.Exame;
 import br.unicamp.ic.mc322.model.HorarioDisponivel;
 import br.unicamp.ic.mc322.model.Medico;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-
-import java.nio.file.Path;
-import java.time.DayOfWeek;
-import java.util.ArrayList;
-import java.util.List;
 
 public class MedicoRepository {
 
@@ -131,7 +132,7 @@ public class MedicoRepository {
                     XmlUtil.add(doc, eh, "diaDaSemana", horario.getDiaDaSemana());
                     XmlUtil.add(doc, eh, "horaInicio", horario.getHoraInicio());
                     XmlUtil.add(doc, eh, "horaFim", horario.getHoraFim());
-                    XmlUtil.add(doc, eh, "disponivel", horario.isDisponivel());
+                    XmlUtil.add(doc, eh, "disponivel", horario.estaDisponivel());
                 }
             }
         }

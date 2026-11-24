@@ -1,5 +1,12 @@
 package br.unicamp.ic.mc322.service;
 
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Objects;
+import java.util.UUID;
+
 import br.unicamp.ic.mc322.exception.AgendamentoException;
 import br.unicamp.ic.mc322.model.Agendamento;
 import br.unicamp.ic.mc322.model.Exame;
@@ -10,13 +17,6 @@ import br.unicamp.ic.mc322.model.enums.TipoAgendamento;
 import br.unicamp.ic.mc322.persistence.AgendamentoRepository;
 import br.unicamp.ic.mc322.persistence.MedicoRepository;
 import br.unicamp.ic.mc322.persistence.PacienteRepository;
-
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Objects;
-import java.util.UUID;
 
 public class AgendamentoService {
 
@@ -89,7 +89,7 @@ public class AgendamentoService {
     }
 
     private Agendamento solicitar(Paciente paciente, Medico medico, TipoAgendamento tipo,
-                                  Exame exame, LocalDateTime dataHora) {
+            Exame exame, LocalDateTime dataHora) {
         if (paciente == null || medico == null || dataHora == null) {
             throw new AgendamentoException("Dados do agendamento incompletos.");
         }
