@@ -8,7 +8,9 @@ import org.junit.jupiter.api.Test;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.temporal.TemporalAdjusters;
 import java.util.List;
 import java.util.UUID;
 
@@ -46,5 +48,19 @@ class AgendaServiceTest extends TesteComDados {
         agendaService.removerHorarioDisponivel(medico, horarios.get(0).getId());
 
         assertTrue(agendaService.listarHorariosDisponiveis(medico).isEmpty());
+    }
+
+    @Test
+    void listaHorariosDoDiaComBaseNaAgendaDoMedico() {
+        HorarioDisponivel horario = new HorarioDisponivel(null, DayOfWeek.MONDAY,
+                LocalTime.of(8, 0), LocalTime.of(10, 0), true);
+        agendaService.adicionarHorarioDisponivel(medico, horario);
+
+        LocalDate proximaSegunda = LocalDate.now().with(TemporalAdjusters.next(DayOfWeek.MONDAY));
+        List<LocalDateTime> horarios = agendaService.listarHorariosDisponiveis(medico, proximaSegunda);
+
+        assertEquals(4, horarios.size());
+        assertTrue(horarios.contains(proximaSegunda.atTime(8, 0)));
+        assertTrue(horarios.contains(proximaSegunda.atTime(9, 30)));
     }
 }

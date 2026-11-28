@@ -11,15 +11,19 @@ import javafx.geometry.Pos;
 import javafx.scene.Parent;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
+import javafx.scene.control.DatePicker;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
+import javafx.util.StringConverter;
 
 import java.time.DayOfWeek;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
@@ -29,12 +33,15 @@ import java.util.Locale;
 public class PainelPaciente {
 
     private static final DateTimeFormatter FORMATO_DATA = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+    private static final DateTimeFormatter FORMATO_DIA = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+    private static final DateTimeFormatter FORMATO_HORA = DateTimeFormatter.ofPattern("HH:mm");
 
     private Paciente paciente;
     private final VBox resultados = new VBox(8);
+    private final VBox horariosDisponiveis = new VBox(6);
     private final VBox proximos = new VBox(6);
     private final VBox historico = new VBox(6);
-    private final TextField dataHora = new TextField();
+    private final DatePicker data = new DatePicker();
     private final Label mensagem = new Label();
 
     public PainelPaciente(Paciente paciente) {
@@ -98,9 +105,9 @@ public class PainelPaciente {
         HBox disponibilidade = new HBox(8, dia, porDisponibilidade);
         disponibilidade.setAlignment(Pos.CENTER_LEFT);
 
-        Label rotuloData = new Label("Data e hora do agendamento (AAAA-MM-DDTHH:MM)");
-        dataHora.setPromptText("2026-12-01T14:00");
-        dataHora.setMaxWidth(470);
+        Label rotuloData = new Label("Data do agendamento");
+        configurarCalendario();
+        Label instrucao = new Label("Clique em \"Ver horários\" em um médico para escolher um horário.");
 
         mensagem.setStyle("-fx-text-fill: #333333;");
         mensagem.setWrapText(true);
@@ -109,10 +116,32 @@ public class PainelPaciente {
             resultados.getChildren().add(new Label("Use os campos acima para buscar médicos."));
         }
 
-        VBox coluna = new VBox(10, titulo, termo, botoes, disponibilidade, rotuloData, dataHora,
-                mensagem, resultados);
+        VBox coluna = new VBox(10, titulo, termo, botoes, disponibilidade, rotuloData, data,
+                instrucao, mensagem, resultados, horariosDisponiveis);
         coluna.setPrefWidth(500);
         return coluna;
+    }
+
+    private void configurarCalendario() {
+        data.setPromptText("dd/mm/aaaa");
+        data.setMaxWidth(470);
+        data.setValue(LocalDate.now());
+        data.setConverter(new StringConverter<LocalDate>() {
+            @Override
+            public String toString(LocalDate valor) {
+                return valor == null ? "" : valor.format(FORMATO_DIA);
+            }
+
+            @Override
+            public LocalDate fromString(String texto) {
+                try {
+                    return texto == null || texto.isBlank() ? null : LocalDate.parse(texto.trim(), FORMATO_DIA);
+                } catch (DateTimeParseException e) {
+                    return null;
+                }
+            }
+        });
+        data.valueProperty().addListener((obs, antigo, novo) -> horariosDisponiveis.getChildren().clear());
     }
 
     private VBox colunaAgendamentos() {
@@ -143,22 +172,42 @@ public class PainelPaciente {
         for (Medico medico : medicos) {
             Label informacoes = new Label(resumo(medico));
             informacoes.setWrapText(true);
-            Button solicitar = new Button(termoExame == null ? "Solicitar consulta" : "Solicitar exame");
-            solicitar.setOnAction(e -> solicitar(medico, termoExame));
+            Button verHorarios = new Button("Ver horários");
+            verHorarios.setOnAction(e -> mostrarHorarios(medico, termoExame));
 
-            VBox item = new VBox(6, informacoes, solicitar);
+            VBox item = new VBox(6, informacoes, verHorarios);
             item.setPadding(new Insets(8));
             item.setStyle("-fx-background-color: white; -fx-background-radius: 6;");
             resultados.getChildren().add(item);
         }
     }
 
-    private void solicitar(Medico medico, String termoExame) {
+    private void mostrarHorarios(Medico medico, String termoExame) {
+        horariosDisponiveis.getChildren().clear();
+        mensagem.setStyle("-fx-text-fill: #333333;");
+        LocalDate dia = data.getValue();
+        if (dia == null) {
+            mensagem.setText("Selecione uma data no calendário.");
+            return;
+        }
+        List<LocalDateTime> horarios = Navegacao.agendaService().listarHorariosDisponiveis(medico, dia);
+        horariosDisponiveis.getChildren().add(titulo(
+                "Horários de " + texto(medico.getNome()) + " em " + dia.format(FORMATO_DIA)));
+        if (horarios.isEmpty()) {
+            horariosDisponiveis.getChildren().add(new Label("Nenhum horário disponível nesse dia."));
+            return;
+        }
+        FlowPane botoes = new FlowPane(8, 8);
+        for (LocalDateTime horario : horarios) {
+            Button agendar = new Button(horario.toLocalTime().format(FORMATO_HORA));
+            agendar.setOnAction(e -> solicitar(medico, termoExame, horario));
+            botoes.getChildren().add(agendar);
+        }
+        horariosDisponiveis.getChildren().add(botoes);
+    }
+
+    private void solicitar(Medico medico, String termoExame, LocalDateTime quando) {
         try {
-            if (dataHora.getText().isBlank()) {
-                throw new IllegalArgumentException("Informe a data e hora do agendamento.");
-            }
-            LocalDateTime quando = LocalDateTime.parse(dataHora.getText().trim());
             if (termoExame == null) {
                 Navegacao.agendamentoService().solicitarConsulta(paciente, medico, quando);
             } else {
@@ -170,10 +219,8 @@ public class PainelPaciente {
             }
             mensagem.setStyle("-fx-text-fill: #1a7f37;");
             mensagem.setText("Solicitação enviada com sucesso.");
+            horariosDisponiveis.getChildren().clear();
             atualizarAgendamentos();
-        } catch (DateTimeParseException ex) {
-            mensagem.setStyle("-fx-text-fill: #b00020;");
-            mensagem.setText("Data/hora inválida. Use o formato AAAA-MM-DDTHH:MM.");
         } catch (RuntimeException ex) {
             mensagem.setStyle("-fx-text-fill: #b00020;");
             mensagem.setText(ex.getMessage());

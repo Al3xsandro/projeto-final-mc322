@@ -10,6 +10,8 @@ import br.unicamp.ic.mc322.persistence.AgendamentoRepository;
 import br.unicamp.ic.mc322.persistence.MedicoRepository;
 import br.unicamp.ic.mc322.persistence.PacienteRepository;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -69,6 +71,31 @@ public class AgendaService {
         return new ArrayList<>(existente.getAgenda().getHorariosDisponiveis());
     }
 
+    public List<LocalDateTime> listarHorariosDisponiveis(Medico medico, LocalDate data) {
+        List<LocalDateTime> horarios = new ArrayList<>();
+        if (medico == null || data == null) {
+            return horarios;
+        }
+        List<Agendamento> agendamentos = agendamentoRepository.carregar(
+                medicoRepository.carregar(), pacienteRepository.carregar());
+        LocalDateTime agora = LocalDateTime.now();
+        for (HorarioDisponivel janela : listarHorariosDisponiveis(medico)) {
+            if (!janela.estaDisponivel() || janela.getDiaDaSemana() != data.getDayOfWeek()
+                    || janela.getHoraInicio() == null || janela.getHoraFim() == null) {
+                continue;
+            }
+            LocalDateTime inicio = data.atTime(janela.getHoraInicio());
+            LocalDateTime fim = data.atTime(janela.getHoraFim());
+            for (LocalDateTime slot = inicio; slot.isBefore(fim); slot = slot.plusMinutes(30)) {
+                if (slot.isAfter(agora) && !ocupado(agendamentos, medico, slot)) {
+                    horarios.add(slot);
+                }
+            }
+        }
+        horarios.sort(Comparator.naturalOrder());
+        return horarios;
+    }
+
     public List<Agendamento> listarHistoricoAtendimentos(Medico medico) {
         List<Agendamento> historico = new ArrayList<>();
         if (medico == null) {
@@ -91,6 +118,19 @@ public class AgendaService {
         return status == StatusAgendamento.REALIZADO
                 || status == StatusAgendamento.RECUSADO
                 || status == StatusAgendamento.CANCELADO;
+    }
+
+    private static boolean ocupado(List<Agendamento> agendamentos, Medico medico, LocalDateTime dataHora) {
+        for (Agendamento agendamento : agendamentos) {
+            if (agendamento.getMedico() != null
+                    && Objects.equals(agendamento.getMedico().getId(), medico.getId())
+                    && Objects.equals(agendamento.getDataHora(), dataHora)
+                    && agendamento.getStatus() != StatusAgendamento.CANCELADO
+                    && agendamento.getStatus() != StatusAgendamento.RECUSADO) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static Medico encontrar(List<Medico> medicos, String id) {

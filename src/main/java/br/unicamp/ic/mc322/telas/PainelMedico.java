@@ -3,7 +3,6 @@ package br.unicamp.ic.mc322.telas;
 import java.time.DayOfWeek;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
 import java.util.List;
 
 import br.unicamp.ic.mc322.model.Agendamento;
@@ -16,7 +15,6 @@ import javafx.scene.Parent;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
-import javafx.scene.control.TextField;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
@@ -86,12 +84,8 @@ public class PainelMedico {
         ComboBox<DayOfWeek> dia = new ComboBox<>();
         dia.getItems().addAll(DayOfWeek.values());
         dia.setPromptText("Dia da semana");
-        TextField inicio = new TextField();
-        inicio.setPromptText("Início (08:00)");
-        inicio.setPrefWidth(110);
-        TextField fim = new TextField();
-        fim.setPromptText("Fim (12:00)");
-        fim.setPrefWidth(110);
+        ComboBox<LocalTime> inicio = comboHorario("Início");
+        ComboBox<LocalTime> fim = comboHorario("Fim");
 
         Label erro = erro();
         Button adicionar = new Button("Adicionar horário");
@@ -100,16 +94,15 @@ public class PainelMedico {
                 if (dia.getValue() == null) {
                     throw new IllegalArgumentException("Selecione o dia da semana.");
                 }
-                LocalTime horaInicio = LocalTime.parse(inicio.getText().trim());
-                LocalTime horaFim = LocalTime.parse(fim.getText().trim());
-                if (!horaFim.isAfter(horaInicio)) {
+                if (inicio.getValue() == null || fim.getValue() == null) {
+                    throw new IllegalArgumentException("Selecione o horário inicial e final.");
+                }
+                if (!fim.getValue().isAfter(inicio.getValue())) {
                     throw new IllegalArgumentException("O horário final deve ser maior que o inicial.");
                 }
                 Navegacao.agendaService().adicionarHorarioDisponivel(
-                        medico, new HorarioDisponivel(null, dia.getValue(), horaInicio, horaFim, true));
+                        medico, new HorarioDisponivel(null, dia.getValue(), inicio.getValue(), fim.getValue(), true));
                 recarregar();
-            } catch (DateTimeParseException ex) {
-                erro.setText("Horário inválido. Use o formato HH:mm.");
             } catch (RuntimeException ex) {
                 erro.setText(ex.getMessage());
             }
@@ -121,6 +114,16 @@ public class PainelMedico {
         VBox coluna = new VBox(10, titulo, horarios, formulario, erro);
         coluna.setPrefWidth(480);
         return coluna;
+    }
+
+    private static ComboBox<LocalTime> comboHorario(String prompt) {
+        ComboBox<LocalTime> combo = new ComboBox<>();
+        for (int hora = 0; hora < 24; hora++) {
+            combo.getItems().add(LocalTime.of(hora, 0));
+            combo.getItems().add(LocalTime.of(hora, 30));
+        }
+        combo.setPromptText(prompt);
+        return combo;
     }
 
     private VBox colunaPendencias() {

@@ -5,17 +5,23 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Parent;
 import javafx.scene.control.Button;
+import javafx.scene.control.DatePicker;
 import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
+import javafx.util.StringConverter;
 
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.UUID;
 
 public class TelaCadastroPaciente {
+
+    private static final DateTimeFormatter FORMATO_DATA = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
     public Parent criar() {
         Label titulo = new Label("Cadastro de Paciente");
@@ -27,7 +33,7 @@ public class TelaCadastroPaciente {
         senha.setPromptText("Senha");
         senha.setMaxWidth(380);
         TextField telefone = campo("Telefone");
-        TextField dataNascimento = campo("Data de nascimento (AAAA-MM-DD)");
+        DatePicker dataNascimento = calendario("Data de nascimento");
         TextField cpf = campo("CPF");
 
         Label erro = new Label();
@@ -41,14 +47,8 @@ public class TelaCadastroPaciente {
                 if (vazio(nome, email, senha, cpf)) {
                     throw new IllegalArgumentException("Preencha nome, e-mail, senha e CPF.");
                 }
-                if (dataNascimento.getText().isBlank()) {
+                if (dataNascimento.getValue() == null) {
                     throw new IllegalArgumentException("Informe a data de nascimento.");
-                }
-                LocalDate nascimento;
-                try {
-                    nascimento = LocalDate.parse(dataNascimento.getText().trim());
-                } catch (RuntimeException ex) {
-                    throw new IllegalArgumentException("Data inválida. Use o formato AAAA-MM-DD.");
                 }
                 Paciente paciente = new Paciente(
                         UUID.randomUUID().toString(),
@@ -57,7 +57,7 @@ public class TelaCadastroPaciente {
                         senha.getText(),
                         telefone.getText().trim(),
                         LocalDate.now(),
-                        nascimento,
+                        dataNascimento.getValue(),
                         cpf.getText().trim());
                 Navegacao.auth().cadastrarPaciente(paciente);
                 Navegacao.irPara(new TelaLoginPaciente().criar());
@@ -82,6 +82,28 @@ public class TelaCadastroPaciente {
         campo.setPromptText(prompt);
         campo.setMaxWidth(380);
         return campo;
+    }
+
+    private static DatePicker calendario(String prompt) {
+        DatePicker calendario = new DatePicker();
+        calendario.setPromptText("dd/mm/aaaa");
+        calendario.setMaxWidth(380);
+        calendario.setConverter(new StringConverter<LocalDate>() {
+            @Override
+            public String toString(LocalDate valor) {
+                return valor == null ? "" : valor.format(FORMATO_DATA);
+            }
+
+            @Override
+            public LocalDate fromString(String texto) {
+                try {
+                    return texto == null || texto.isBlank() ? null : LocalDate.parse(texto.trim(), FORMATO_DATA);
+                } catch (DateTimeParseException e) {
+                    return null;
+                }
+            }
+        });
+        return calendario;
     }
 
     private static boolean vazio(TextField... campos) {
